@@ -1,34 +1,82 @@
 Module.register("MMM-MicrosoftToDo",{
 
-    // Override dom generator.
-    getDom: function() {
+  	html: {
+      empty: '<li style=\"list-style-position:inside; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;\">" + this.translate("NO_ENTRIES") + "</li>',
+      table: '<thead>{0}</thead><tbody>{1}</tbody>',
+      row: '<tr>{0}{1}</tr>',
+      column: '<td width="6%">{0}</td><td width="2%">{1}</td><td class="title bright" align="left" width="40%">{2}</td><td width="2%">{3}</td>',
+      star: '<i class="fa fa-star" aria-hidden="true"></i>',
+      assignee: '<div style="display: inline-flex; align-items: center; justify-content: center; background-color: #aaa; color: #666; min-width: 1em; border-radius: 50%; vertical-align: middle; padding: 2px; text-transform: uppercase;">{0}</div>',
+    },
 
-      // checkbox icon is added based on configuration
-      var checkbox = this.config.showCheckbox ? "▢&nbsp; " : "";
 
-      // styled wrapper of the todo list
-      var listWrapper = document.createElement("ul");
-      listWrapper.style.maxWidth = this.config.maxWidth + 'px';
-      listWrapper.style.paddingLeft = '0';
-      listWrapper.style.marginTop = '0';
-      listWrapper.style.listStyleType = 'none';
-      listWrapper.classList.add("small");
+    getDom: function () {
 
-      var listItemsText = "";
+      var self = this;
+      var wrapper = document.createElement("table");
+      wrapper.className = "normal small light";
 
-      // for each entry add styled list items
-      if (this.list.length != 0) {
-        this.list.forEach(element => listItemsText += "<li style=\"list-style-position:inside; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;\">" + checkbox + element.subject + "</li>");
+      var todos = this.list;
+
+      var rows = []
+      var rowCount = 0;
+      var row;
+      var previousCol;
+
+      if (todos.length == 0) {
+        wrapper.innerHTML = this.html.empty;
       }
-      // otherwise indicate that there are no list entries
       else {
-        listItemsText += "<li style=\"list-style-position:inside; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;\">" + this.translate("NO_ENTRIES") + "</li>";
+        todos.forEach(function (todo, i) {
+
+          if (i%2!=0) {
+            var newCol = self.html.column.format(
+              //self.config.showDeadline && todo.due_date ? todo.due_date : '',
+              i+1,
+              todo.importance == "high" ? self.html.star : '',
+              todo.subject,
+              self.config.showAssignee && todo.assignee_id && self.users ? self.html.assignee.format(self.users[todo.assignee_id]) : ''
+            )
+            rows[rowCount] = self.html.row.format(previousCol, newCol);
+            previousCol = '';
+            // New row
+            rowCount++;
+          }
+          else {
+            previousCol = self.html.column.format(
+              //self.config.showDeadline && todo.due_date ? todo.due_date : '',
+              i+1,
+              todo.importance == "high" ? self.html.star : '',
+              todo.subject,
+              self.config.showAssignee && todo.assignee_id && self.users ? self.html.assignee.format(self.users[todo.assignee_id]) : ''
+            )
+          }
+
+          // Create fade effect
+          if (self.config.fade && self.config.fadePoint < 1) {
+            if (self.config.fadePoint < 0) {
+              self.config.fadePoint = 0;
+            }
+            var startingPoint = todos.length * self.config.fadePoint;
+            if (i >= startingPoint) {
+              wrapper.style.opacity = 1 - (1 / todos.length - startingPoint * (i - startingPoint));
+            }
+          }
+        });
+
+        if (previousCol != '') {
+          rowCount++;
+          var dummyCol = this.html.column.format('', '', '', '');
+          rows[rowCount] = self.html.row.format(previousCol, dummyCol);
+        }
+
+        wrapper.innerHTML = this.html.table.format(
+          this.html.row.format('', '', '', ''),
+          rows.join('')
+        )
       }
 
-      // add list items to wrapper
-      listWrapper.innerHTML = listItemsText;
-
-      return listWrapper;
+      return wrapper;
     },
 
     getTranslations: function() {
