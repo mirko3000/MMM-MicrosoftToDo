@@ -120,8 +120,7 @@ Module.register("MMM-MicrosoftToDo",{
       }
 
       this.updateDom()
-    }
-  },
+    },
 
   start: function () {
     // copy module object to be accessible in callbacks
